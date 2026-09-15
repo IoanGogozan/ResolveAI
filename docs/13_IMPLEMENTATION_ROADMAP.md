@@ -33,13 +33,15 @@ Implement:
 
 Definition of Done:
 
-- [ ] Host and PostgreSQL start from documented steps; build and CI pass.
-- [ ] Case creation/read works and persists across restart.
-- [ ] Tenant comes from trusted identity; cross-tenant lookup is denied.
-- [ ] Development authentication cannot activate outside supported development/test environments.
-- [ ] Migrations work on an empty database; integration tests use real PostgreSQL.
-- [ ] Audit survives a crash between case commit and audit delivery; duplicate delivery is harmless.
-- [ ] Architecture checks enforce no module reference to Host and no foreign persistence access.
+- [x] Host and PostgreSQL start from documented steps; build and CI pass.
+- [x] Case creation/read works and persists across restart.
+- [x] Tenant comes from trusted identity; cross-tenant lookup is denied.
+- [x] Development authentication cannot activate outside supported development/test environments.
+- [x] Migrations work on an empty database; integration tests use real PostgreSQL.
+- [x] Audit survives a crash between case commit and audit delivery; duplicate delivery is harmless.
+- [x] Architecture checks enforce no module reference to Host and no foreign persistence access.
+
+Evidence: [Delivery 1 verification](14_DELIVERY_1.md), including local tests, a forced process restart and GitHub Linux CI.
 
 # 4. Delivery 2 — Business Facts & Read Capabilities
 

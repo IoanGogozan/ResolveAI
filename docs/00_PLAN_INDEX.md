@@ -5,7 +5,7 @@
 
 This package is the clean, synchronized architecture and implementation baseline for ResolveAI.
 
-The planning phase is considered complete enough to start **Delivery 1 — Foundation & Case Intake**. Further documents should be added only when implementation creates a concrete decision need.
+Delivery 1 — Foundation & Case Intake is implemented and verified. The next implementation target is **Delivery 2 — Business Facts & Read Capabilities**. Further documents should be added only when implementation creates a concrete decision need.
 
 ---
 
@@ -26,6 +26,7 @@ The planning phase is considered complete enough to start **Delivery 1 — Found
 | `11_TECHNOLOGY_STACK.md` | V0/V1 technology choices |
 | `12_DOTNET_SOLUTION_STRUCTURE.md` | `.sln`, `.csproj`, dependency graph and repository layout |
 | `13_IMPLEMENTATION_ROADMAP.md` | Delivery order, canonical V0 release gate and V1 milestones |
+| `14_DELIVERY_1.md` | Implemented intake/audit design, validation approach and current limits |
 
 ---
 
@@ -99,7 +100,7 @@ No further large architecture-planning document is required before implementatio
 Next action:
 
 ```text
-Delivery 1 — Foundation & Case Intake
+Delivery 2 — Business Facts & Read Capabilities
 ```
 
 ## Baseline v1.1 alignment
