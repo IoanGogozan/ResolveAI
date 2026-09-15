@@ -7,6 +7,7 @@ using Npgsql;
 using ResolveAI.Audit.Contracts;
 using ResolveAI.Audit.DependencyInjection;
 using ResolveAI.CaseManagement.DependencyInjection;
+using ResolveAI.Integrations.DependencyInjection;
 using Testcontainers.PostgreSql;
 
 namespace ResolveAI.IntegrationTests;
@@ -50,6 +51,7 @@ public sealed class AppFactory(string connectionString, string environment = "Te
     {
         await Services.MigrateAuditAsync();
         await Services.MigrateCaseManagementAsync();
+        await Services.MigrateSimulationAsync();
     }
 
     public HttpClient Client(string? user = "alpha-operator")

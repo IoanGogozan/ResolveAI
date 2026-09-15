@@ -5,7 +5,7 @@
 
 This package is the clean, synchronized architecture and implementation baseline for ResolveAI.
 
-Delivery 1 — Foundation & Case Intake is implemented and verified. The next implementation target is **Delivery 2 — Business Facts & Read Capabilities**. Further documents should be added only when implementation creates a concrete decision need.
+Deliveries 1 and 2 are implemented and locally verified. The next implementation target is **Delivery 3 — Structured AI Proposal & Initial Evals**. Further documents should be added only when implementation creates a concrete decision need.
 
 ---
 
@@ -27,6 +27,7 @@ Delivery 1 — Foundation & Case Intake is implemented and verified. The next im
 | `12_DOTNET_SOLUTION_STRUCTURE.md` | `.sln`, `.csproj`, dependency graph and repository layout |
 | `13_IMPLEMENTATION_ROADMAP.md` | Delivery order, canonical V0 release gate and V1 milestones |
 | `14_DELIVERY_1.md` | Implemented intake/audit design, validation approach and current limits |
+| `15_DELIVERY_2.md` | Implemented business-data capabilities, simulation persistence and association checks |
 
 ---
 
@@ -100,7 +101,7 @@ No further large architecture-planning document is required before implementatio
 Next action:
 
 ```text
-Delivery 2 — Business Facts & Read Capabilities
+Delivery 3 — Structured AI Proposal & Initial Evals
 ```
 
 ## Baseline v1.1 alignment

@@ -2,8 +2,10 @@ using ResolveAI.Platform;
 
 namespace ResolveAI.CaseManagement.Contracts;
 
-public sealed record CreateCaseRequest(string Subject, string Description);
-public sealed record CaseSummary(Guid Id, string Subject, string Description, string Status, DateTimeOffset CreatedAt);
+public sealed record CaseBusinessReferences(string CustomerId, string OrderId, string PaymentId);
+public sealed record CreateCaseRequest(string Subject, string Description, CaseBusinessReferences? References = null);
+public sealed record CaseSummary(Guid Id, string Subject, string Description, string Status, DateTimeOffset CreatedAt,
+    CaseBusinessReferences? References = null);
 
 public interface ICaseService
 {

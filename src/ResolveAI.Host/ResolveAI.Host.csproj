@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <ProjectReference Include="../Modules/ResolveAI.Execution/ResolveAI.Execution.csproj" />
+    <ProjectReference Include="../ResolveAI.Integrations/ResolveAI.Integrations.csproj" />
     <ProjectReference Include="../ResolveAI.Platform/ResolveAI.Platform.csproj" />
     <ProjectReference Include="../Modules/ResolveAI.CaseManagement/ResolveAI.CaseManagement.csproj" />
     <ProjectReference Include="../Modules/ResolveAI.Audit/ResolveAI.Audit.csproj" />

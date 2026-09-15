@@ -268,6 +268,20 @@
           "ResolveAI.Platform": "[1.0.0, )"
         }
       },
+      "resolveai.execution": {
+        "type": "Project",
+        "dependencies": {
+          "ResolveAI.Platform": "[1.0.0, )"
+        }
+      },
+      "resolveai.integrations": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Relational": "[10.0.12, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
+          "ResolveAI.Execution": "[1.0.0, )"
+        }
+      },
       "resolveai.platform": {
         "type": "Project"
       },

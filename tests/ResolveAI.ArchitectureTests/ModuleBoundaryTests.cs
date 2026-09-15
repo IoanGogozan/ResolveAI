@@ -5,13 +5,16 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using ResolveAI.Audit.Contracts;
 using ResolveAI.CaseManagement.Contracts;
 using ResolveAI.Platform;
+using ResolveAI.Execution.Contracts;
+using ResolveAI.Integrations.DependencyInjection;
 
 namespace ResolveAI.ArchitectureTests;
 
 public sealed class ModuleBoundaryTests
 {
     private static readonly Assembly[] Modules =
-        [typeof(ActorContext).Assembly, typeof(ICaseService).Assembly, typeof(IAuditWriter).Assembly];
+        [typeof(ActorContext).Assembly, typeof(ICaseService).Assembly, typeof(IAuditWriter).Assembly,
+            typeof(IBusinessReads).Assembly, typeof(SimulationModule).Assembly];
 
     [Fact]
     public void Module_references_follow_the_allowed_acyclic_graph()
@@ -20,6 +23,8 @@ public sealed class ModuleBoundaryTests
         {
             ["ResolveAI.Platform"] = [],
             ["ResolveAI.Audit"] = ["ResolveAI.Platform"],
+            ["ResolveAI.Execution"] = ["ResolveAI.Platform"],
+            ["ResolveAI.Integrations"] = ["ResolveAI.Execution", "ResolveAI.Platform"],
             ["ResolveAI.CaseManagement"] = ["ResolveAI.Platform", "ResolveAI.Audit"]
         };
         foreach (var assembly in Modules)

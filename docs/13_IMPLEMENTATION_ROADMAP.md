@@ -49,11 +49,13 @@ Implement synthetic CRM, Orders and Payments data in PostgreSQL, behind module-o
 
 Definition of Done:
 
-- [ ] A damaged-monitor case resolves its customer, order and payment through contracts.
-- [ ] Missing or mismatched references produce explicit outcomes.
-- [ ] Cross-tenant tools and incorrect customer/order/payment associations are blocked.
-- [ ] No core module directly accesses simulation tables or provider DTOs.
-- [ ] The flow remains runnable without AI; new operations are correlated in traces.
+- [x] A damaged-monitor case resolves its customer, order and payment through contracts.
+- [x] Missing or mismatched references produce explicit outcomes.
+- [x] Cross-tenant tools and incorrect customer/order/payment associations are blocked.
+- [x] No core module directly accesses simulation tables or provider DTOs.
+- [x] The flow remains runnable without AI; new operations are correlated in traces.
+
+Evidence: [Delivery 2 verification](15_DELIVERY_2.md), PostgreSQL integration tests, architecture checks and the normal-process restart demo.
 
 # 5. Delivery 3 — Structured AI Proposal & Initial Evals
 

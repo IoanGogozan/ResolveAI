@@ -91,11 +91,6 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
         }
       },
-      "Microsoft.Extensions.DependencyInjection.Abstractions": {
-        "type": "Transitive",
-        "resolved": "10.0.12",
-        "contentHash": "9/qymSh7hVDMGTGwrLz8MRp5zRyXy9adGDOs4HwRdnLil3oZGYuWeZjbmHgCQ9BL1qBroVfgUK3U/nb61617Cw=="
-      },
       "Microsoft.Extensions.Logging": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -206,6 +201,21 @@
           "ResolveAI.Platform": "[1.0.0, )"
         }
       },
+      "resolveai.execution": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
+          "ResolveAI.Platform": "[1.0.0, )"
+        }
+      },
+      "resolveai.integrations": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Relational": "[10.0.12, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
+          "ResolveAI.Execution": "[1.0.0, )"
+        }
+      },
       "resolveai.platform": {
         "type": "Project"
       },
@@ -220,6 +230,12 @@
           "Microsoft.Extensions.Configuration.Abstractions": "10.0.12",
           "Microsoft.Extensions.Logging": "10.0.12"
         }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "9/qymSh7hVDMGTGwrLz8MRp5zRyXy9adGDOs4HwRdnLil3oZGYuWeZjbmHgCQ9BL1qBroVfgUK3U/nb61617Cw=="
       },
       "Npgsql.EntityFrameworkCore.PostgreSQL": {
         "type": "CentralTransitive",

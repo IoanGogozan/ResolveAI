@@ -11,6 +11,9 @@ internal sealed class SupportCase
     public required string Description { get; set; }
     public required string Status { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public string? CustomerId { get; set; }
+    public string? OrderId { get; set; }
+    public string? PaymentId { get; set; }
 }
 
 internal sealed class CaseCreatedOutbox
@@ -34,11 +37,14 @@ internal sealed class CaseDbContext(DbContextOptions<CaseDbContext> options) : D
     {
         modelBuilder.HasDefaultSchema("case_management");
         var entity = modelBuilder.Entity<SupportCase>();
-        entity.ToTable("cases");
+        entity.ToTable("cases", t => t.HasCheckConstraint("CK_case_references", "(\"CustomerId\" IS NULL AND \"OrderId\" IS NULL AND \"PaymentId\" IS NULL) OR (\"CustomerId\" IS NOT NULL AND \"OrderId\" IS NOT NULL AND \"PaymentId\" IS NOT NULL)"));
         entity.HasKey(x => new { x.TenantId, x.Id });
         entity.Property(x => x.Subject).HasMaxLength(200);
         entity.Property(x => x.Description).HasMaxLength(10000);
         entity.Property(x => x.Status).HasMaxLength(30);
+        entity.Property(x => x.CustomerId).HasMaxLength(100);
+        entity.Property(x => x.OrderId).HasMaxLength(100);
+        entity.Property(x => x.PaymentId).HasMaxLength(100);
         var outbox = modelBuilder.Entity<CaseCreatedOutbox>();
         outbox.ToTable("case_created_outbox");
         outbox.HasKey(x => x.EventId);

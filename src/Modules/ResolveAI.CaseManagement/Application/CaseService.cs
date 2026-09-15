@@ -16,12 +16,19 @@ internal sealed class CaseService(CaseDbContext db, TimeProvider clock, ILogger<
             string.IsNullOrWhiteSpace(request.Description) || request.Description.Length > 10000)
             throw new CaseValidationException("Subject must contain 1–200 characters and description 1–10000 characters.");
 
+        if (request.References is { } references &&
+            new[] { references.CustomerId, references.OrderId, references.PaymentId }
+                .Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 100 || id != id.Trim()))
+            throw new CaseValidationException("Business references must be a complete set of non-empty IDs of at most 100 characters.");
+
         using var activity = Telemetry.Source.StartActivity("case.create");
         var item = new SupportCase
         {
             Id = Guid.CreateVersion7(), TenantId = actor.TenantId,
             Subject = request.Subject.Trim(), Description = request.Description.Trim(),
-            Status = "Created", CreatedAt = clock.GetUtcNow()
+            Status = "Created", CreatedAt = clock.GetUtcNow(),
+            CustomerId = request.References?.CustomerId, OrderId = request.References?.OrderId,
+            PaymentId = request.References?.PaymentId
         };
         activity?.SetTag("tenant.id", actor.TenantId);
         activity?.SetTag("case.id", item.Id);
@@ -48,5 +55,6 @@ internal sealed class CaseService(CaseDbContext db, TimeProvider clock, ILogger<
         return item is null ? null : ToSummary(item);
     }
 
-    private static CaseSummary ToSummary(SupportCase x) => new(x.Id, x.Subject, x.Description, x.Status, x.CreatedAt);
+    private static CaseSummary ToSummary(SupportCase x) => new(x.Id, x.Subject, x.Description, x.Status, x.CreatedAt,
+        x.CustomerId is null ? null : new(x.CustomerId, x.OrderId!, x.PaymentId!));
 }

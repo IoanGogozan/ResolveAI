@@ -76,10 +76,22 @@ namespace ResolveAI.CaseManagement.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CustomerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(10000)
                         .HasColumnType("character varying(10000)");
+
+                    b.Property<string>("OrderId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -93,7 +105,10 @@ namespace ResolveAI.CaseManagement.Persistence.Migrations
 
                     b.HasKey("TenantId", "Id");
 
-                    b.ToTable("cases", "case_management");
+                    b.ToTable("cases", "case_management", t =>
+                        {
+                            t.HasCheckConstraint("CK_case_references", "(\"CustomerId\" IS NULL AND \"OrderId\" IS NULL AND \"PaymentId\" IS NULL) OR (\"CustomerId\" IS NOT NULL AND \"OrderId\" IS NOT NULL AND \"PaymentId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ResolveAI.CaseManagement.Persistence.CaseCreatedOutbox", b =>
