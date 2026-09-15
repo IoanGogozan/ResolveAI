@@ -8,6 +8,8 @@ using ResolveAI.Audit.Contracts;
 using ResolveAI.Audit.DependencyInjection;
 using ResolveAI.CaseManagement.DependencyInjection;
 using ResolveAI.Integrations.DependencyInjection;
+using ResolveAI.AI.DependencyInjection;
+using ResolveAI.AI.Contracts;
 using Testcontainers.PostgreSql;
 
 namespace ResolveAI.IntegrationTests;
@@ -30,7 +32,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
 }
 
 public sealed class AppFactory(string connectionString, string environment = "Testing",
-    bool dispatch = false, bool failAfterAuditCommit = false) : WebApplicationFactory<Program>
+    bool dispatch = false, bool failAfterAuditCommit = false, ILlmGateway? gateway = null, AiSettings? aiSettings = null) : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -38,6 +40,19 @@ public sealed class AppFactory(string connectionString, string environment = "Te
         builder.UseSetting("ConnectionStrings:Database", connectionString);
         builder.UseSetting("DevelopmentAuth:Enabled", "true");
         builder.UseSetting("Audit:DispatchEnabled", dispatch.ToString());
+        builder.ConfigureTestServices(services =>
+        {
+            if (gateway is not null)
+            {
+                services.RemoveAll<ILlmGateway>();
+                services.AddSingleton(gateway);
+            }
+            if (aiSettings is not null)
+            {
+                services.RemoveAll<AiSettings>();
+                services.AddSingleton(aiSettings);
+            }
+        });
         if (failAfterAuditCommit)
             builder.ConfigureTestServices(services =>
             {
@@ -52,6 +67,7 @@ public sealed class AppFactory(string connectionString, string environment = "Te
         await Services.MigrateAuditAsync();
         await Services.MigrateCaseManagementAsync();
         await Services.MigrateSimulationAsync();
+        await Services.MigrateAiAsync();
     }
 
     public HttpClient Client(string? user = "alpha-operator")

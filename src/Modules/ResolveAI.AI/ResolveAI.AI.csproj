@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../ResolveAI.Platform/ResolveAI.Platform.csproj" />
+    <ProjectReference Include="../ResolveAI.Execution/ResolveAI.Execution.csproj" />
+    <ProjectReference Include="../ResolveAI.Audit/ResolveAI.Audit.csproj" />
+    <PackageReference Include="OpenAI" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -14,6 +14,8 @@ Implemented: persistent case intake, trusted development identity, tenant isolat
 
 Delivery 2 adds persistent simulated customer/order/payment data, permission-checked read capabilities and validated case references.
 
+Delivery 3 adds persisted structured AI proposals, an OpenAI adapter and 10 versioned evaluation cases. Deterministic checks pass; live-provider verification is pending a configured API key. See [Delivery 3](docs/16_DELIVERY_3.md) for API and evaluation commands.
+
 ### Prerequisites
 
 - .NET SDK 10.0.300 (or a compatible patch in that SDK feature band).
@@ -33,7 +35,7 @@ dotnet run --no-build --project src/ResolveAI.Host -- --seed-demo
 dotnet run --no-build --project src/ResolveAI.Host
 ```
 
-The launch profile selects Development and binds to `http://localhost:5080`. The explicit migration command applies Audit, CaseManagement and Simulation migrations and exits. `--seed-demo` inserts missing synthetic fixtures without resetting existing data. Run these commands separately, in that order. Normal startup does not migrate or seed.
+The launch profile selects Development and binds to `http://localhost:5080`. The explicit migration command applies Audit, CaseManagement, Simulation and AI migrations and exits. `--seed-demo` inserts missing synthetic fixtures without resetting existing data. Run these commands separately, in that order. Normal startup does not migrate or seed.
 
 PostgreSQL uses loopback port 55432 and a named persistent volume. The committed password is a local demo fixture only. Override `ConnectionStrings__Database` to use another database. `docker compose -f deploy/docker-compose.yml down` stops the local database without deleting its volume.
 
@@ -68,7 +70,7 @@ Creation returns `201` and a `Location` header. Audit is delivered asynchronousl
 | `alpha-reader` | same Alpha tenant | read cases |
 | `beta-operator` | `22222222-2222-2222-2222-222222222222` | create/read cases, read audit |
 
-Both operator identities also have `customers.read`, `orders.read` and `payments.read`; `alpha-reader` does not.
+Both operator identities also have `customers.read`, `orders.read`, `payments.read`, `proposals.create` and `proposals.read`; `alpha-reader` does not.
 
 The server maps these fixed identities to tenants and permissions. JSON cannot supply tenant/actor/permission fields; unknown JSON properties are rejected. Anonymous/unknown identities receive `401`, missing permissions `403`, and cross-tenant or missing cases `404`.
 
@@ -93,7 +95,7 @@ dotnet test --no-build --configuration Release --logger trx --results-directory 
 
 Integration tests start disposable PostgreSQL 18.3 containers and isolate each scenario in a new database. They cover fresh/repeated migrations, host restart, tenant isolation, permission checks, invalid payloads, atomic rollback, audit failure after commit, concurrent redelivery, background delivery and trace correlation. Architecture tests inspect compiled dependencies, foreign contract usage and implementation visibility.
 
-GitHub Actions runs the same build/test sequence on Linux and uploads test results. Business-data tests additionally cover shared external IDs across tenants, missing/mismatched references, persistence after restart/reseed, changed external associations, provider failures and capability spans. There are no AI dependencies or paid-provider calls yet.
+GitHub Actions runs the same build/test sequence plus the fixture evaluation harness on Linux and uploads reports. Business-data tests cover shared external IDs across tenants, missing/mismatched references, persistence after restart/reseed, changed external associations, provider failures and capability spans. AI tests cover validated proposals, faults, permissions, concurrency, durable results and audit. Normal CI makes no paid-provider calls.
 
 ### Add a migration
 
@@ -111,12 +113,15 @@ For Audit, use the Audit project and `AuditDbContext`. Each module has a separat
 - `src/Modules/ResolveAI.CaseManagement`: case state and its audit outbox.
 - `src/Modules/ResolveAI.Audit`: append/read contracts and event persistence.
 - `src/Modules/ResolveAI.Execution`: typed read capabilities, permissions and association checks; owns adapter ports.
+- `src/Modules/ResolveAI.AI`: LLM gateway, structured validation, proposal runs and audit delivery.
+- `tools/ResolveAI.Evals`: versioned fixtures, separate live evaluation and report comparison.
 - `src/ResolveAI.Integrations`: PostgreSQL simulation and adapters implementing Execution ports.
 - `tests/`: PostgreSQL integration and compiled architecture checks.
 - [Delivery 1 design and limits](docs/14_DELIVERY_1.md).
 - [Delivery 2 design and limits](docs/15_DELIVERY_2.md).
+- [Delivery 3 design, evaluation commands and limits](docs/16_DELIVERY_3.md).
 
-Current scope covers intake and read-only business data. Workflow/approval, refund execution and AI follow in subsequent deliveries. Case creation itself does not yet accept a client idempotency key; retrying POST can create a second case. The audit event for each committed case is deduplicated independently.
+Current scope covers intake, read-only business data and AI proposals. Workflow/approval and refund execution follow in subsequent deliveries. Case creation itself does not yet accept a client idempotency key; retrying POST can create a second case. Proposal generation uses a tenant-scoped operation key. Audit events are deduplicated independently.
 
 ## Business-data demo
 

@@ -104,6 +104,7 @@ These are documented but do not currently need separate ADRs.
 ResolveAI.AI
     → Platform
     → Execution
+    → Audit (durable proposal outcome delivery)
     → Knowledge (when RAG appears)
 ```
 

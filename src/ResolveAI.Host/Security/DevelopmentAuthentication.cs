@@ -36,6 +36,8 @@ internal sealed class DevelopmentAuthentication(IOptionsMonitor<AuthenticationSc
             claims.Add(new("permission", "customers.read"));
             claims.Add(new("permission", "orders.read"));
             claims.Add(new("permission", "payments.read"));
+            claims.Add(new("permission", "proposals.create"));
+            claims.Add(new("permission", "proposals.read"));
         }
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SchemeName));
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, SchemeName)));

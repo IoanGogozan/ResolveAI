@@ -1,4 +1,5 @@
 using ResolveAI.CaseManagement.Contracts;
+using ResolveAI.AI.Contracts;
 
 namespace ResolveAI.Host.Infrastructure;
 
@@ -14,6 +15,7 @@ internal sealed class AuditDeliveryWorker(IServiceScopeFactory scopes, ILogger<A
             {
                 await using var scope = scopes.CreateAsyncScope();
                 await scope.ServiceProvider.GetRequiredService<ICaseAuditDelivery>().DeliverBatchAsync(stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<IProposalAuditDelivery>().DeliverBatchAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
             catch (Exception exception)

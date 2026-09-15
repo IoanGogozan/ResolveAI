@@ -5,7 +5,7 @@
 
 This package is the clean, synchronized architecture and implementation baseline for ResolveAI.
 
-Deliveries 1 and 2 are implemented and locally verified. The next implementation target is **Delivery 3 — Structured AI Proposal & Initial Evals**. Further documents should be added only when implementation creates a concrete decision need.
+Deliveries 1 and 2 are implemented and verified. Delivery 3 is implemented with deterministic verification; its live-provider evaluation gate remains pending an OpenAI key. See the delivery notes before starting Delivery 4. Further documents should be added only when implementation creates a concrete decision need.
 
 ---
 
@@ -28,6 +28,7 @@ Deliveries 1 and 2 are implemented and locally verified. The next implementation
 | `13_IMPLEMENTATION_ROADMAP.md` | Delivery order, canonical V0 release gate and V1 milestones |
 | `14_DELIVERY_1.md` | Implemented intake/audit design, validation approach and current limits |
 | `15_DELIVERY_2.md` | Implemented business-data capabilities, simulation persistence and association checks |
+| `16_DELIVERY_3.md` | Structured proposals, interruption recovery, evaluation commands and pending live verification |
 
 ---
 
@@ -51,6 +52,7 @@ The AI module uses the Tool/Execution Gateway rather than calling external busin
 ResolveAI.AI
     → ResolveAI.Platform
     → ResolveAI.Execution
+    → ResolveAI.Audit (durable proposal outcome delivery)
     → ResolveAI.Knowledge (V1, when RAG is introduced)
 ```
 

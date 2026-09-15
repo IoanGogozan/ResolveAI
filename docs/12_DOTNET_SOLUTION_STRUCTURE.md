@@ -353,6 +353,7 @@ ResolveAI.Decisioning
 ResolveAI.AI
     → Platform
     → Execution
+    → Audit (durable proposal outcome delivery)
     → Knowledge (V1, when RAG is introduced)
 
 ResolveAI.Execution

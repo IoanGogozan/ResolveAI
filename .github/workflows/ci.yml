@@ -16,6 +16,7 @@ jobs:
       - run: dotnet restore --locked-mode
       - run: dotnet build --no-restore --configuration Release
       - run: dotnet test --no-build --configuration Release --logger trx --results-directory TestResults
+      - run: dotnet run --no-build --configuration Release --project tools/ResolveAI.Evals -- --mode fixture --output TestResults/evals-fixture.json
       - uses: actions/upload-artifact@v7.0.1
         if: always()
         with:

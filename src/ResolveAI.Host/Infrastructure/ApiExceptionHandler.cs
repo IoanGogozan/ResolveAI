@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using ResolveAI.CaseManagement.Contracts;
 using ResolveAI.Platform;
 using ResolveAI.Execution.Contracts;
+using ResolveAI.AI.Contracts;
 
 namespace ResolveAI.Host.Infrastructure;
 
@@ -12,6 +13,8 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) :
         var (status, title) = exception switch
         {
             AccessDeniedException => (403, "Access denied."),
+            ProposalRequestException { Code: "OperationConflict" } => (409, "Operation ID was already used for different input."),
+            ProposalRequestException => (400, "Invalid proposal request or input limit exceeded."),
             CaseValidationException validation => (400, validation.Message),
             BusinessReadException { Failure: BusinessReadFailure.InvalidReference } => (400, "Invalid business reference."),
             BusinessReadException { Failure: BusinessReadFailure.NotFound } => (404, "Business resource not found."),

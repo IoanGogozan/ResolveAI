@@ -63,12 +63,14 @@ Implement AI, its internal LLM Gateway, one provider adapter, schema validation,
 
 Definition of Done:
 
-- [ ] A case and trusted facts produce a validated structured proposal.
-- [ ] Provider types stay inside AI infrastructure; invalid output is rejected.
-- [ ] Prompt/model versions, usage and latency are recorded without default sensitive-context logging.
-- [ ] Deterministic provider substitutes run in normal CI.
+- [x] A case and trusted facts produce a validated structured proposal (deterministic provider integration).
+- [x] Provider types stay inside AI infrastructure; invalid output is rejected.
+- [x] Prompt/model versions, usage and latency are recorded without default sensitive-context logging.
+- [x] Deterministic provider substitutes run in normal CI.
 - [ ] Real-provider evals run separately with invocation/cost limits and saved comparable reports.
-- [ ] Persisted operation identity/results support safe continuation after interruption.
+- [x] Persisted operation identity/results support safe continuation after interruption.
+
+Evidence and commands: [Delivery 3 verification](16_DELIVERY_3.md). Ten versioned semantic cases and deterministic fault tests pass. The live runner is implemented; real-provider verification remains pending credentials.
 
 # 6. Delivery 4 — Decisioning, Approval & Persistent Waiting
 

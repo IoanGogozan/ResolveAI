@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Modules/ResolveAI.AI/ResolveAI.AI.csproj" />
     <ProjectReference Include="../../src/ResolveAI.Integrations/ResolveAI.Integrations.csproj" />
     <ProjectReference Include="../../src/Modules/ResolveAI.CaseManagement/ResolveAI.CaseManagement.csproj" />
     <ProjectReference Include="../../src/Modules/ResolveAI.Audit/ResolveAI.Audit.csproj" />

@@ -13,6 +13,9 @@ using ResolveAI.Platform;
 using ResolveAI.Execution.Contracts;
 using ResolveAI.Execution.DependencyInjection;
 using ResolveAI.Integrations.DependencyInjection;
+using ResolveAI.AI.Contracts;
+using ResolveAI.AI.DependencyInjection;
+using ResolveAI.Host.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 var localEnvironment = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
@@ -35,13 +38,18 @@ builder.Services.AddAuthentication(DevelopmentAuthentication.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthentication>(DevelopmentAuthentication.SchemeName, _ => { });
 builder.Services.AddAuthorization(options =>
 {
-    foreach (var permission in new[] { "cases.create", "cases.read", "audit.read", "customers.read", "orders.read", "payments.read" })
+    foreach (var permission in new[] { "cases.create", "cases.read", "audit.read", "customers.read", "orders.read", "payments.read", "proposals.create", "proposals.read" })
         options.AddPolicy(permission, policy => policy.RequireAuthenticatedUser().RequireClaim("permission", permission));
 });
 builder.Services.AddAuditModule(connectionString);
 builder.Services.AddCaseManagementModule(connectionString);
 builder.Services.AddExecutionModule();
 builder.Services.AddSimulatedIntegrations(connectionString);
+var aiSettings = (builder.Configuration.GetSection("AI").Get<AiSettings>() ?? new AiSettings()) with
+{
+    ApiKey = builder.Configuration["OPENAI_API_KEY"]
+};
+builder.Services.AddAiModule(connectionString, aiSettings);
 if (builder.Configuration.GetValue("Audit:DispatchEnabled", true))
     builder.Services.AddHostedService<AuditDeliveryWorker>();
 builder.Services.AddOpenTelemetry().ConfigureResource(r => r.AddService("ResolveAI.Host"))
@@ -58,6 +66,7 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     await app.Services.MigrateAuditAsync();
     await app.Services.MigrateCaseManagementAsync();
     await app.Services.MigrateSimulationAsync();
+    await app.Services.MigrateAiAsync();
     await app.DisposeAsync();
     return;
 }
@@ -126,6 +135,7 @@ app.MapGet("/api/business/customers/{customerId}/orders/{orderId}", async (strin
     Results.Ok(await reads.GetOrderAsync(http.User.ToActor(), customerId, orderId, ct))).RequireAuthorization("customers.read", "orders.read");
 app.MapGet("/api/business/customers/{customerId}/orders/{orderId}/payments/{paymentId}", async (string customerId, string orderId, string paymentId, HttpContext http, IBusinessReads reads, CancellationToken ct) =>
     Results.Ok(await reads.GetPaymentAsync(http.User.ToActor(), customerId, orderId, paymentId, ct))).RequireAuthorization("customers.read", "orders.read", "payments.read");
+app.MapProposalEndpoints();
 await app.RunAsync();
 
 public partial class Program;
