@@ -16,6 +16,8 @@ Delivery 2 adds persistent simulated customer/order/payment data, permission-che
 
 Delivery 3 adds persisted structured AI proposals, an OpenAI adapter and 10 versioned evaluation cases. Deterministic checks pass; live-provider verification is pending a configured API key. See [Delivery 3](docs/16_DELIVERY_3.md) for API and evaluation commands.
 
+An operator console consuming these contracts lives in [`web/`](#operator-console). It reads and creates; it cannot execute a business action, because no execution capability exists yet.
+
 ### Prerequisites
 
 - .NET SDK 10.0.300 (or a compatible patch in that SDK feature band).
@@ -81,7 +83,13 @@ Development authentication requires both an explicit enabled setting and Develop
 - `GET /health/live`: process liveness.
 - `GET /health/ready`: PostgreSQL connectivity (does not assert migrations are current).
 - `GET /openapi/v1.json`: OpenAPI document.
-- `POST /api/cases`, `GET /api/cases/{id}`, `GET /api/cases/{id}/audit`.
+- `GET /api/me`: the caller's own tenant, actor type and permissions. Advisory only, for enabling client controls; every endpoint still authorizes independently.
+- `POST /api/cases`, `GET /api/cases`, `GET /api/cases/{id}`, `GET /api/cases/{id}/audit`.
+- `GET /api/cases/{id}/proposals`: the persisted runs for one case, newest first.
+
+`GET /api/cases` is tenant-scoped and pages by keyset: `?limit=` (1–100, default 20) and `?cursor=`, where the cursor is the `nextCursor` returned by the previous page and is `null` on the last one. Case IDs are UUIDv7, so descending ID order is newest-first at millisecond granularity.
+
+Every failure response carries a stable machine-readable `code` in its ProblemDetails extensions alongside `traceId`. Clients match on `code`, never on the human-readable title. Rejections produced by the framework before the application runs — anonymous requests, missing permissions, unmatched routes — have no body at all, so a client must treat a bodyless `401`/`403`/`404` as the corresponding outcome.
 
 Console output is structured JSON. Application logs contain identifiers, not subjects/descriptions or credentials. ASP.NET and `ResolveAI` spans correlate the HTTP operation and background audit delivery through a persisted W3C trace parent. Set `OTEL_EXPORTER_OTLP_ENDPOINT` to export to an OTLP collector; none is required locally. Audit remains persistent even when telemetry is not exported.
 
@@ -95,7 +103,7 @@ dotnet test --no-build --configuration Release --logger trx --results-directory 
 
 Integration tests start disposable PostgreSQL 18.3 containers and isolate each scenario in a new database. They cover fresh/repeated migrations, host restart, tenant isolation, permission checks, invalid payloads, atomic rollback, audit failure after commit, concurrent redelivery, background delivery and trace correlation. Architecture tests inspect compiled dependencies, foreign contract usage and implementation visibility.
 
-GitHub Actions runs the same build/test sequence plus the fixture evaluation harness on Linux and uploads reports. Business-data tests cover shared external IDs across tenants, missing/mismatched references, persistence after restart/reseed, changed external associations, provider failures and capability spans. AI tests cover validated proposals, faults, permissions, concurrency, durable results and audit. Normal CI makes no paid-provider calls.
+GitHub Actions runs the same build/test sequence plus the fixture evaluation harness on Linux and uploads reports. A separate `web` job runs the console's lint, type check, tests and production build, and fails if the built bundle contains the development authentication header. Business-data tests cover shared external IDs across tenants, missing/mismatched references, persistence after restart/reseed, changed external associations, provider failures and capability spans. AI tests cover validated proposals, faults, permissions, concurrency, durable results and audit. Normal CI makes no paid-provider calls.
 
 ### Add a migration
 
@@ -117,11 +125,43 @@ For Audit, use the Audit project and `AuditDbContext`. Each module has a separat
 - `tools/ResolveAI.Evals`: versioned fixtures, separate live evaluation and report comparison.
 - `src/ResolveAI.Integrations`: PostgreSQL simulation and adapters implementing Execution ports.
 - `tests/`: PostgreSQL integration and compiled architecture checks.
+- `web/`: React operator console; see [frontend architecture and plan](docs/17_FRONTEND_ARCHITECTURE_AND_PLAN.md).
 - [Delivery 1 design and limits](docs/14_DELIVERY_1.md).
 - [Delivery 2 design and limits](docs/15_DELIVERY_2.md).
 - [Delivery 3 design, evaluation commands and limits](docs/16_DELIVERY_3.md).
 
 Current scope covers intake, read-only business data and AI proposals. Workflow/approval and refund execution follow in subsequent deliveries. Case creation itself does not yet accept a client idempotency key; retrying POST can create a second case. Proposal generation uses a tenant-scoped operation key. Audit events are deduplicated independently.
+
+## Operator console
+
+A React + TypeScript console in `web/` that consumes only the published contracts above. Requires Node 22 or newer (see `web/.nvmrc`).
+
+```sh
+cd web
+npm ci
+npm run dev
+```
+
+With the host already running, open `http://localhost:5173`. The dev server proxies `/api`, `/health` and `/openapi` to `http://localhost:5080`, so requests are same-origin and the host needs no CORS policy. Override the target with `RESOLVEAI_BACKEND` if the host is bound elsewhere.
+
+Pick a fixture identity from the header switcher. The console sends only that identity; it never sends a tenant or a permission, and it derives what to enable from `GET /api/me` while the backend continues to authorize every request independently. Switching identity clears all cached data.
+
+What it demonstrates:
+
+- **Tenant isolation.** Open a case as `alpha-operator`, switch to `beta-operator`: the same URL answers `404 NotFound`, worded so it does not disclose that the case exists elsewhere.
+- **Permission enforcement.** As `alpha-reader` the case is readable, while business facts, proposals and audit each report `403 AccessDenied` and name the permission the endpoint required.
+- **Eventual audit.** A new case shows "no events delivered yet" until the background worker publishes, distinguishing pending delivery from absent data.
+- **Cost-safe AI.** The operation ID is persisted before the request is sent, so a lost response offers replaying the *same* operation, which returns the stored result instead of buying a second invocation. Starting a genuinely new run requires an explicit confirmation. Nothing retries a failed or uncertain run automatically. Without a provider API key, runs resolve to `ProviderNotConfigured`, which the console reports as a configuration state rather than a model failure.
+- **Uncertain outcomes.** An abandoned invocation is shown as `Interrupted / OutcomeUnknown` rather than being reissued.
+
+```sh
+npm run lint       # module boundaries and React rules
+npm run typecheck  # strict TypeScript, no emit
+npm test           # Vitest with mocked backend responses
+npm run build      # production bundle
+```
+
+Fixture identities are a local development affordance, exactly as on the host. They exist only when `VITE_DEV_IDENTITIES=true` (set in `.env.development`), the module refuses to load if that flag is set in a production build, and CI asserts the built bundle contains no development authentication header. A production build therefore has no way to authenticate until OIDC is wired, which the console reports instead of silently failing.
 
 ## Business-data demo
 

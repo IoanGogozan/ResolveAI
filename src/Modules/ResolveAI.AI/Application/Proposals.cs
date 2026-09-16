@@ -13,6 +13,8 @@ namespace ResolveAI.AI.Application;
 internal sealed class Proposals(AiDbContext db, IBusinessReads reads, ILlmGateway gateway, AiSettings settings,
     TimeProvider clock) : IProposals
 {
+    private const int MaxListedRuns = 20;
+
     public async Task<ProposalRun> GenerateAsync(ActorContext actor, Guid operationId, ProposalTask task, CancellationToken ct = default)
     {
         Require(actor, "proposals.create");
@@ -100,19 +102,37 @@ internal sealed class Proposals(AiDbContext db, IBusinessReads reads, ILlmGatewa
         return LoadAsync(actor.TenantId, caseId, operationId, ct);
     }
 
+    public async Task<IReadOnlyList<ProposalRun>> ListAsync(ActorContext actor, Guid caseId, CancellationToken ct = default)
+    {
+        Require(actor, "proposals.read");
+        var query = db.Runs.Where(x => x.TenantId == actor.TenantId && x.CaseId == caseId);
+        await ExpireAbandonedAsync(query, ct);
+        // Run IDs are UUIDv7, so descending ID order is newest first to millisecond granularity.
+        var runs = await query.AsNoTracking().OrderByDescending(x => x.RunId).Take(MaxListedRuns).ToListAsync(ct);
+        return [.. runs.Select(ToRun)];
+    }
+
     private async Task<ProposalRun?> LoadAsync(Guid tenantId, Guid caseId, Guid operationId, CancellationToken ct)
     {
-        var now = clock.GetUtcNow();
         var query = db.Runs.Where(x => x.TenantId == tenantId && x.CaseId == caseId && x.OperationId == operationId);
-        await query.Where(x => x.Status == "Running" && x.LeaseUntil < now).ExecuteUpdateAsync(s =>
+        await ExpireAbandonedAsync(query, ct);
+        var run = await query.AsNoTracking().SingleOrDefaultAsync(ct);
+        return run is null ? null : ToRun(run);
+    }
+
+    // A claim whose lease has passed records uncertainty; it never silently reissues a paid invocation.
+    private Task ExpireAbandonedAsync(IQueryable<AgentRun> query, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+        return query.Where(x => x.Status == "Running" && x.LeaseUntil < now).ExecuteUpdateAsync(s =>
             s.SetProperty(x => x.Status, "Interrupted").SetProperty(x => x.ErrorCode, "OutcomeUnknown")
                 .SetProperty(x => x.CompletedAt, now), ct);
-        var run = await query.AsNoTracking().SingleOrDefaultAsync(ct);
-        return run is null ? null : new(run.RunId, run.OperationId, run.CaseId, run.Status,
-            run.ProposalJson is null ? null : JsonSerializer.Deserialize<StructuredProposal>(run.ProposalJson, ProposalProtocol.JsonOptions),
-            run.ErrorCode, run.Provider, run.Model, run.PromptVersion, run.SchemaVersion, run.InputTokens, run.OutputTokens,
-            run.EstimatedCostUsd, run.LatencyMs, run.CreatedAt, run.CompletedAt);
     }
+
+    private static ProposalRun ToRun(AgentRun run) => new(run.RunId, run.OperationId, run.CaseId, run.Status,
+        run.ProposalJson is null ? null : JsonSerializer.Deserialize<StructuredProposal>(run.ProposalJson, ProposalProtocol.JsonOptions),
+        run.ErrorCode, run.Provider, run.Model, run.PromptVersion, run.SchemaVersion, run.InputTokens, run.OutputTokens,
+        run.EstimatedCostUsd, run.LatencyMs, run.CreatedAt, run.CompletedAt);
 
     private static void Require(ActorContext actor, string permission)
     {

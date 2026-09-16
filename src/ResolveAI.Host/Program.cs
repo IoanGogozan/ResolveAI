@@ -94,6 +94,12 @@ app.MapGet("/health/ready", async (CancellationToken ct) =>
     }
     catch (NpgsqlException) { return Results.Problem(statusCode: 503, title: "Database unavailable."); }
 });
+// Advisory context so a client can enable the controls it is allowed to use; enforcement stays on every endpoint.
+app.MapGet("/api/me", (HttpContext http) =>
+{
+    var actor = http.User.ToActor();
+    return Results.Ok(new CallerContext(actor.TenantId, actor.ActorId, actor.ActorType, [.. actor.Permissions.Order()]));
+}).RequireAuthorization();
 app.MapPost("/api/cases", async (CreateCaseRequest request, HttpContext http, ICaseService cases, IBusinessReads reads, CancellationToken ct) =>
 {
     var actor = http.User.ToActor();
@@ -105,6 +111,8 @@ app.MapPost("/api/cases", async (CreateCaseRequest request, HttpContext http, IC
     activity?.SetTag("case.id", result.Id);
     return Results.Created($"/api/cases/{result.Id}", result);
 }).RequireAuthorization("cases.create");
+app.MapGet("/api/cases", async (int? limit, string? cursor, HttpContext http, ICaseService cases, CancellationToken ct) =>
+    Results.Ok(await cases.ListAsync(http.User.ToActor(), limit ?? 20, cursor, ct))).RequireAuthorization("cases.read");
 app.MapGet("/api/cases/{id:guid}", async (Guid id, HttpContext http, ICaseService cases, CancellationToken ct) =>
 {
     var result = await cases.GetAsync(http.User.ToActor(), id, ct);
@@ -139,3 +147,5 @@ app.MapProposalEndpoints();
 await app.RunAsync();
 
 public partial class Program;
+
+internal sealed record CallerContext(Guid TenantId, string ActorId, string ActorType, string[] Permissions);

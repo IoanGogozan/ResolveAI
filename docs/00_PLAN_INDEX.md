@@ -29,6 +29,7 @@ Deliveries 1 and 2 are implemented and verified. Delivery 3 is implemented with 
 | `14_DELIVERY_1.md` | Implemented intake/audit design, validation approach and current limits |
 | `15_DELIVERY_2.md` | Implemented business-data capabilities, simulation persistence and association checks |
 | `16_DELIVERY_3.md` | Structured proposals, interruption recovery, evaluation commands and pending live verification |
+| `17_FRONTEND_ARCHITECTURE_AND_PLAN.md` | Operator console architecture, backend prerequisites and phased plan; accepted and implemented for F0–F3, later phases blocked on their deliveries |
 
 ---
 

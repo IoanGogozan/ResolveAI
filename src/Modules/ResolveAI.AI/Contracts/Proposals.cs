@@ -31,6 +31,8 @@ public interface IProposals
 {
     Task<ProposalRun> GenerateAsync(ActorContext actor, Guid operationId, ProposalTask task, CancellationToken ct = default);
     Task<ProposalRun?> GetAsync(ActorContext actor, Guid caseId, Guid operationId, CancellationToken ct = default);
+    // Newest first, bounded; a case is not expected to accumulate many deliberate paid runs.
+    Task<IReadOnlyList<ProposalRun>> ListAsync(ActorContext actor, Guid caseId, CancellationToken ct = default);
 }
 
 public interface IProposalAuditDelivery

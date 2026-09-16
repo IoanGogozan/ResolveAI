@@ -22,3 +22,30 @@ jobs:
         with:
           name: test-results
           path: TestResults
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # The console must not be able to ship header-based development authentication to a real
+      # deployment, mirroring the host's refusal to start with it outside Development/Testing.
+      - name: Assert development authentication is absent from the production bundle
+        run: |
+          if grep -rq "X-Development-User" dist; then
+            echo "The production bundle contains the development authentication header." >&2
+            exit 1
+          fi

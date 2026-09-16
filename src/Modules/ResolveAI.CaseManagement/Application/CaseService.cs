@@ -55,6 +55,31 @@ internal sealed class CaseService(CaseDbContext db, TimeProvider clock, ILogger<
         return item is null ? null : ToSummary(item);
     }
 
+    public async Task<CasePage> ListAsync(ActorContext actor, int limit, string? cursor, CancellationToken ct = default)
+    {
+        actor.Require("cases.read");
+        if (limit is < 1 or > 100)
+            throw new CaseValidationException("Limit must be between 1 and 100.");
+        Guid? after = null;
+        if (cursor is not null)
+        {
+            if (!Guid.TryParse(cursor, out var parsed))
+                throw new CaseValidationException("Cursor must be an identifier returned by a previous page.");
+            after = parsed;
+        }
+        using var activity = Telemetry.Source.StartActivity("case.list");
+        activity?.SetTag("tenant.id", actor.TenantId);
+        // Case IDs are UUIDv7, so descending ID order is newest-first to millisecond granularity and needs no
+        // extra sort column. The cursor predicate uses SQL because LINQ has no ordering comparison for Guid.
+        IQueryable<SupportCase> source = after is { } id
+            ? db.Cases.FromSql($"""SELECT * FROM case_management.cases WHERE "Id" < {id}""")
+            : db.Cases;
+        var rows = await source.AsNoTracking().Where(x => x.TenantId == actor.TenantId)
+            .OrderByDescending(x => x.Id).Take(limit + 1).ToListAsync(ct);
+        var items = rows.Take(limit).Select(ToSummary).ToArray();
+        return new CasePage(items, rows.Count > limit ? items[^1].Id.ToString() : null);
+    }
+
     private static CaseSummary ToSummary(SupportCase x) => new(x.Id, x.Subject, x.Description, x.Status, x.CreatedAt,
         x.CustomerId is null ? null : new(x.CustomerId, x.OrderId!, x.PaymentId!));
 }

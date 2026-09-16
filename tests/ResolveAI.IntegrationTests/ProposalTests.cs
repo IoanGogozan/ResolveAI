@@ -190,6 +190,41 @@ public sealed class ProposalTests(DatabaseFixture database) : IClassFixture<Data
     }
 
     [Fact]
+    public async Task Run_list_is_scoped_to_one_case_and_never_reports_an_abandoned_claim_as_running()
+    {
+        var connection = await database.CreateDatabaseAsync();
+        var gateway = new FakeGateway((_, _) => Task.FromResult(Reply()));
+        await using var app = new AppFactory(connection, gateway: gateway);
+        await app.MigrateAsync(); await app.Services.SeedSimulationAsync();
+        using var client = app.Client(); using var beta = app.Client("beta-operator"); using var reader = app.Client("alpha-reader");
+        var item = await CreateAsync(client); var other = await CreateAsync(client);
+        var first = await GenerateAsync(client, item.Id, Guid.NewGuid());
+        await Task.Delay(2); // UUIDv7 only orders across distinct milliseconds.
+        var second = await GenerateAsync(client, item.Id, Guid.NewGuid());
+        var unrelated = await GenerateAsync(client, other.Id, Guid.NewGuid());
+
+        var runs = (await client.GetFromJsonAsync<ProposalRun[]>($"/api/cases/{item.Id}/proposals"))!;
+        Assert.Equal(new[] { second.RunId, first.RunId }, runs.Select(x => x.RunId).ToArray());
+        Assert.All(runs, x => Assert.Equal(item.Id, x.CaseId));
+        Assert.Equal(649m, runs[0].Proposal!.Amount);
+        Assert.Equal(unrelated.RunId, Assert.Single((await client.GetFromJsonAsync<ProposalRun[]>($"/api/cases/{other.Id}/proposals"))!).RunId);
+        Assert.Equal(HttpStatusCode.NotFound, (await beta.GetAsync($"/api/cases/{item.Id}/proposals")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reader.GetAsync($"/api/cases/{item.Id}/proposals")).StatusCode);
+
+        // Reconstruct a claim left behind by a terminated process; the list must resolve it, not display it as active.
+        await using var db = new NpgsqlConnection(connection); await db.OpenAsync();
+        await using var command = new NpgsqlCommand("""
+            UPDATE ai.agent_runs SET "Status"='Running', "CompletedAt"=NULL, "LeaseUntil"=NOW()-INTERVAL '1 minute'
+            WHERE "RunId"=@run
+            """, db);
+        command.Parameters.AddWithValue("run", second.RunId); await command.ExecuteNonQueryAsync();
+        var resolved = (await client.GetFromJsonAsync<ProposalRun[]>($"/api/cases/{item.Id}/proposals"))!;
+        Assert.Equal("Interrupted", resolved[0].Status);
+        Assert.Equal("OutcomeUnknown", resolved[0].ErrorCode);
+        Assert.Equal(3, gateway.Calls);
+    }
+
+    [Fact]
     public void Schema_rejects_extra_duplicate_and_wrong_typed_fields()
     {
         var input = new ProposalModelInput("x", "y", "customer-monitor",

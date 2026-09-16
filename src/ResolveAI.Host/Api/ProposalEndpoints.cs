@@ -22,6 +22,14 @@ internal static class ProposalEndpoints
             return run.Status == "Running" ? Results.Accepted(location, run) : Results.Ok(run);
         }).RequireAuthorization("cases.read", "proposals.create", "customers.read", "orders.read", "payments.read");
 
+        app.MapGet("/api/cases/{id:guid}/proposals", async (Guid id, HttpContext http,
+            ICaseService cases, IProposals proposals, CancellationToken ct) =>
+        {
+            var actor = http.User.ToActor();
+            if (await cases.GetAsync(actor, id, ct) is null) return Results.NotFound();
+            return Results.Ok(await proposals.ListAsync(actor, id, ct));
+        }).RequireAuthorization("cases.read", "proposals.read", "customers.read", "orders.read", "payments.read");
+
         app.MapGet("/api/cases/{id:guid}/proposals/{operationId:guid}", async (Guid id, Guid operationId, HttpContext http,
             ICaseService cases, IProposals proposals, CancellationToken ct) =>
         {

@@ -12,6 +12,9 @@ namespace ResolveAI.IntegrationTests;
 
 public sealed class CaseIntakeTests(DatabaseFixture database) : IClassFixture<DatabaseFixture>
 {
+    // The host type is internal, so the advisory context response is asserted through its JSON shape.
+    private sealed record Caller(Guid TenantId, string ActorId, string ActorType, string[] Permissions);
+
     private static async Task<CaseSummary> CreateAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/cases", new { subject = "Damaged monitor", description = "The monitor arrived broken." });
@@ -99,6 +102,61 @@ public sealed class CaseIntakeTests(DatabaseFixture database) : IClassFixture<Da
             .CreateAsync(unprivileged, new CreateCaseRequest("x", "y")));
         await Assert.ThrowsAsync<AccessDeniedException>(() => scope.ServiceProvider.GetRequiredService<IAuditReader>()
             .GetForCaseAsync(unprivileged, item.Id));
+    }
+
+    [Fact]
+    public async Task Case_list_pages_by_cursor_within_the_trusted_tenant_only()
+    {
+        await using var app = new AppFactory(await database.CreateDatabaseAsync());
+        await app.MigrateAsync();
+        using var alpha = app.Client();
+        using var beta = app.Client("beta-operator");
+        using var reader = app.Client("alpha-reader");
+        var created = new List<Guid>();
+        for (var i = 0; i < 3; i++)
+        {
+            created.Add((await CreateAsync(alpha)).Id);
+            await Task.Delay(2); // UUIDv7 only orders across distinct milliseconds.
+        }
+        var betaCase = await CreateAsync(beta);
+
+        var first = (await alpha.GetFromJsonAsync<CasePage>("/api/cases?limit=2"))!;
+        Assert.Equal(new[] { created[2], created[1] }, first.Items.Select(x => x.Id).ToArray());
+        Assert.Equal(created[1].ToString(), first.NextCursor);
+        var second = (await alpha.GetFromJsonAsync<CasePage>($"/api/cases?limit=2&cursor={first.NextCursor}"))!;
+        Assert.Equal(created[0], Assert.Single(second.Items).Id);
+        Assert.Null(second.NextCursor);
+        Assert.Equal("Created", second.Items[0].Status);
+
+        var isolated = (await beta.GetFromJsonAsync<CasePage>("/api/cases"))!;
+        Assert.Equal(betaCase.Id, Assert.Single(isolated.Items).Id);
+        Assert.Equal(3, (await reader.GetFromJsonAsync<CasePage>("/api/cases"))!.Items.Count);
+        foreach (var query in new[] { "?limit=0", "?limit=101", "?cursor=not-an-identifier" })
+        {
+            var rejected = await alpha.GetAsync($"/api/cases{query}");
+            Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+            Assert.Contains("\"code\":\"ValidationFailed\"", await rejected.Content.ReadAsStringAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Caller_context_reports_trusted_tenant_and_granted_permissions_only()
+    {
+        await using var app = new AppFactory(await database.CreateDatabaseAsync());
+        await app.MigrateAsync();
+        using var alpha = app.Client();
+        using var reader = app.Client("alpha-reader");
+        using var anonymous = app.Client(null);
+        var operator_ = (await alpha.GetFromJsonAsync<Caller>("/api/me"))!;
+        Assert.Equal(Guid.Parse("11111111-1111-1111-1111-111111111111"), operator_.TenantId);
+        Assert.Equal("alpha-operator", operator_.ActorId);
+        Assert.Equal("Operator", operator_.ActorType);
+        Assert.Contains("proposals.create", operator_.Permissions);
+        var restricted = (await reader.GetFromJsonAsync<Caller>("/api/me"))!;
+        Assert.Contains("cases.read", restricted.Permissions);
+        Assert.DoesNotContain("cases.create", restricted.Permissions);
+        Assert.DoesNotContain("audit.read", restricted.Permissions);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/me")).StatusCode);
     }
 
     [Theory]
